@@ -727,6 +727,15 @@ public abstract class Model extends CallbackSupport implements Externalizable {
     }
 
     /**
+     * Returns true if record corresponding to the id of this instance exists in  the DB.
+     *
+     * @return true if corresponding record exists in DB, false if it does not.
+     */
+    public boolean exists(){
+        return null != new DB(metaModelLocal.getDbName()).firstCell(metaModelLocal.getDialect().selectExists(metaModelLocal), getId());
+    }
+
+    /**
      * Returns true if there is a single record matching the subquery in the DB
      * @param subquery selection criteria, example:
      * <pre>
@@ -737,42 +746,7 @@ public abstract class Model extends CallbackSupport implements Externalizable {
      * @return true if a single matching record exists, false otherwise.
      */
     public static boolean exists(String subquery, Object param1, Object... params){
-        MetaModel metaModel = getMetaModel();
-        params = prefixArray(param1, params);
-        Object o = new DB(metaModel.getDbName()).firstCell("SELECT EXISTS (SELECT 1 FROM " + metaModel.getTableName()
-                + " WHERE " + subquery + ")", params);
-        return interpretMultipleBooleanReturnValues(o);
-    }
-
-    private static Object[] prefixArray(Object param1, Object[] params) {
-        Object[] objects = new Object[params.length + 1];
-        objects[0]=param1;
-        System.arraycopy(params, 0, objects, 1, params.length);
-        return objects;
-    }
-
-    private static boolean interpretMultipleBooleanReturnValues(Object o) {
-        //MySQL returns 0/1 as a Long
-        if(o instanceof Long) {
-            return o.equals(1L);
-        }
-        //H2 returns Boolean
-        else if(o instanceof Boolean) {
-            return (Boolean) o;
-        }
-        //Catch-all in case we get back a string with another DB.
-        else {
-            return o instanceof String && ("true".equalsIgnoreCase((String) o) || "1".equals(o));
-        }
-    }
-
-    /**
-     * Returns true if record corresponding to the id of this instance exists in  the DB.
-     *
-     * @return true if corresponding record exists in DB, false if it does not.
-     */
-    public boolean exists(){
-        return null != new DB(metaModelLocal.getDbName()).firstCell(metaModelLocal.getDialect().selectExists(metaModelLocal), getId());
+        return ModelDelegate.exists(modelClass(), subquery, param1, params);
     }
 
     /**

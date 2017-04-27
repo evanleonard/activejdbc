@@ -1,33 +1,22 @@
 package org.javalite.activejdbc;
 
-import org.javalite.activejdbc.cache.QueryCache;
-
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.javalite.activejdbc.associations.BelongsToAssociation;
 import org.javalite.activejdbc.associations.Many2ManyAssociation;
+import org.javalite.activejdbc.cache.QueryCache;
 import org.javalite.activejdbc.conversion.BlankToNullConverter;
 import org.javalite.activejdbc.conversion.Converter;
 import org.javalite.activejdbc.conversion.ZeroToNullConverter;
-import org.javalite.activejdbc.validation.DateConverter;
-import org.javalite.activejdbc.validation.EmailValidator;
-import org.javalite.activejdbc.validation.NumericValidationBuilder;
-import org.javalite.activejdbc.validation.RangeValidator;
-import org.javalite.activejdbc.validation.RegexpValidator;
-import org.javalite.activejdbc.validation.TimestampConverter;
-import org.javalite.activejdbc.validation.ValidationBuilder;
-import org.javalite.activejdbc.validation.Validator;
+import org.javalite.activejdbc.validation.*;
 import org.javalite.common.Convert;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.javalite.common.Util.*;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.util.*;
+
+import static org.javalite.common.Util.blank;
+import static org.javalite.common.Util.empty;
 
 /**
  * This class exists to offload some logic from {@link Model}  class.
@@ -185,6 +174,36 @@ public final class ModelDelegate {
     public static boolean exists(Class<? extends Model> clazz, Object id) {
         MetaModel metaModel = metaModelOf(clazz);
         return null != new DB(metaModel.getDbName()).firstCell(metaModel.getDialect().selectExists(metaModel), id);
+    }
+
+    public static boolean exists(Class<? extends Model> clazz, String where, Object param1, Object... params) {
+        MetaModel metaModel = metaModelOf(clazz);
+        params = prefixArray(param1, params);
+        String query = metaModel.getDialect().selectExists(metaModel, where);
+        Object o = new DB(metaModel.getDbName()).firstCell(query, params);
+        return interpretMultipleBooleanReturnValues(o);
+    }
+
+    private static Object[] prefixArray(Object param1, Object[] params) {
+        Object[] objects = new Object[params.length + 1];
+        objects[0]=param1;
+        System.arraycopy(params, 0, objects, 1, params.length);
+        return objects;
+    }
+
+    private static boolean interpretMultipleBooleanReturnValues(Object o) {
+        //MySQL returns 0/1 as a Long
+        if(o instanceof Long) {
+            return o.equals(1L);
+        }
+        //H2 returns Boolean
+        else if(o instanceof Boolean) {
+            return (Boolean) o;
+        }
+        //Catch-all in case we get back a string with another DB.
+        else {
+            return o instanceof String && ("true".equalsIgnoreCase((String) o) || "1".equals(o));
+        }
     }
 
     public static <T extends Model> LazyList<T> findAll(Class<T> clazz) {

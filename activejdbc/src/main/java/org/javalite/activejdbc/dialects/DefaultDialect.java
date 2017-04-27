@@ -15,10 +15,10 @@ limitations under the License.
 */
 package org.javalite.activejdbc.dialects;
 
-import static org.javalite.activejdbc.ModelDelegate.metaModelOf;
-import static org.javalite.common.Util.blank;
-import static org.javalite.common.Util.join;
-import static org.javalite.common.Util.joinAndRepeat;
+import org.javalite.activejdbc.CaseInsensitiveMap;
+import org.javalite.activejdbc.MetaModel;
+import org.javalite.activejdbc.associations.Many2ManyAssociation;
+import org.javalite.common.Convert;
 
 import java.util.Iterator;
 import java.util.List;
@@ -27,11 +27,8 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.regex.Pattern;
 
-import org.javalite.activejdbc.CaseInsensitiveMap;
-import org.javalite.activejdbc.MetaModel;
-import org.javalite.activejdbc.Registry;
-import org.javalite.activejdbc.associations.Many2ManyAssociation;
-import org.javalite.common.Convert;
+import static org.javalite.activejdbc.ModelDelegate.metaModelOf;
+import static org.javalite.common.Util.*;
 
 /**
  * @author Igor Polevoy
@@ -143,6 +140,11 @@ public class DefaultDialect implements Dialect {
     public String selectExists(MetaModel metaModel) {
 	    return "SELECT " + metaModel.getIdName() + " FROM " + metaModel.getTableName()
                 + " WHERE " + metaModel.getIdName() + " = ?";
+    }
+
+    @Override
+    public String selectExists(MetaModel metaModel, String where) {
+        return "SELECT EXISTS (SELECT 1 FROM " + metaModel.getTableName() + " WHERE " + where + ")";
     }
 
     @Override

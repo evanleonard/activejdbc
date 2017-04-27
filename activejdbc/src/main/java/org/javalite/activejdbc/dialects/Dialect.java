@@ -16,11 +16,12 @@ limitations under the License.
 
 package org.javalite.activejdbc.dialects;
 
+import org.javalite.activejdbc.MetaModel;
+import org.javalite.activejdbc.associations.Many2ManyAssociation;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import org.javalite.activejdbc.MetaModel;
-import org.javalite.activejdbc.associations.Many2ManyAssociation;
 
 /**
  * @author Eric Nielsen
@@ -42,6 +43,8 @@ public interface Dialect extends Serializable{
     String selectCount(String table, String where);
 
     String selectExists(MetaModel mm);
+
+    String selectExists(MetaModel mm, String where);
 
     String selectManyToManyAssociation(Many2ManyAssociation association, String sourceFkColumnName, int questionsCount);
 
