@@ -16,11 +16,16 @@ limitations under the License.
 
 package org.javalite.db_migrator;
 
+import org.apache.maven.cli.MavenCli;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import org.apache.maven.cli.MavenCli;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import static org.javalite.db_migrator.DbUtils.closeQuietly;
 
 public abstract class AbstractIntegrationSpec {
@@ -36,10 +41,10 @@ public abstract class AbstractIntegrationSpec {
             erros = new ByteArrayOutputStream();
             errps = new PrintStream(erros);
             MavenCli cli = new MavenCli();
+            args = updateArgsWithOverrides(args);
             int code = cli.doMain(args, dir, outps, errps);
             String out = outos.toString();
             String err = erros.toString();
-
             System.out.println("TEST MAVEN EXECUTION START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
             System.out.print("Executing: mvn");
             for (String arg : args) {
@@ -60,5 +65,16 @@ public abstract class AbstractIntegrationSpec {
             closeQuietly(outps);
             closeQuietly(outos);
         }
+    }
+
+    private static String[] updateArgsWithOverrides(String[] args) {
+        if(JdbcPropertiesOverride.exists()) {
+            List<String> mvnCmdLineArgs = JdbcPropertiesOverride.asMvnCmdLineArgs();
+            List<String> updatedArgs = new ArrayList<>();
+            updatedArgs.addAll(mvnCmdLineArgs); //must be first;
+            updatedArgs.addAll(Arrays.asList(args));
+            args = updatedArgs.toArray(new String[0]);
+        }
+        return args;
     }
 }

@@ -3,6 +3,8 @@ package org.javalite.db_migrator;
 
 import org.javalite.common.Util;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -58,5 +60,20 @@ public class JdbcPropertiesOverride {
 
     public static String password() {
         return password;
+    }
+
+    public static boolean exists() {
+        return driver != null || url !=null || user != null || password != null;
+    }
+
+    public static List<String> asMvnCmdLineArgs() {
+        List<String> args = new ArrayList<>();
+        if(JdbcPropertiesOverride.exists()) {
+            args.add("-Djdbc.driver=" + driver);
+            args.add("-Djdbc.url=" + url);
+            args.add("-Djdbc.user=" + user);
+            args.add("-Djdbc.password=" + password);
+        }
+        return args;
     }
 }

@@ -27,6 +27,9 @@ public class MojoIntegrationEnvironmentsSpec extends AbstractIntegrationSpec {
     @Test
     public void shouldRunInEnvironments() throws IOException, InterruptedException {
         String dir = "target/test-project-environments";
+        String dbPropsFile = dir + "/db.properties";
+        MojoIntegrationSpec.overrideJdbcProperties(dbPropsFile, new String[]{"development", "staging"});
+
         // drop
         execute(dir, "db-migrator:drop", "-o");
 
@@ -34,4 +37,5 @@ public class MojoIntegrationEnvironmentsSpec extends AbstractIntegrationSpec {
         String output = execute(dir, "db-migrator:create", "-o");
         the(output).shouldContain(String.format("BUILD SUCCESS"));
     }
+
 }

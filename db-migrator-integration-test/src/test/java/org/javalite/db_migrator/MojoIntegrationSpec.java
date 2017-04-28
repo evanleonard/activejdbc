@@ -23,12 +23,15 @@ package org.javalite.db_migrator;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Properties;
 
-import static org.javalite.db_migrator.JdbcPropertiesOverride.*;
-import static org.junit.Assert.*;
 import static org.javalite.db_migrator.DbUtils.*;
+import static org.javalite.db_migrator.JdbcPropertiesOverride.*;
 import static org.javalite.db_migrator.SpecBuilder.the;
+import static org.junit.Assert.*;
 
 public class MojoIntegrationSpec extends AbstractIntegrationSpec {
 
@@ -39,7 +42,10 @@ public class MojoIntegrationSpec extends AbstractIntegrationSpec {
 
     @Test
     public void shouldRunTestProjectWithProperties() throws IOException, InterruptedException {
-        run("target/test-project-properties");
+        String dir = "target/test-project-properties";
+        String dbPropsFile = dir + "/database.properties";
+        overrideJdbcProperties(dbPropsFile, new String[]{"development"});
+        run(dir);
     }
 
     private void run(String dir) throws IOException, InterruptedException {
@@ -48,25 +54,25 @@ public class MojoIntegrationSpec extends AbstractIntegrationSpec {
 
         // create database
         String output = execute(dir, "db-migrator:create", "-o");
-        the(output).shouldContain("Created database jdbc:mysql://localhost/test_project");
+        the(output).shouldContain("Created database "+url());
         the(output).shouldContain("BUILD SUCCESS");
 
         // migrate
         output = execute(dir, "db-migrator:migrate", "-o");
         the(output).shouldContain("BUILD SUCCESS");
 
-        openConnection(driver(), "jdbc:mysql://localhost/test_project", user(), password());
+        openConnection(driver(), url(), user(), password());
         assertEquals(countRows("books"), 9);
         assertEquals(countRows("authors"), 2);
         closeConnection();
 
         // drop, create and validate
         output = execute(dir, "db-migrator:drop", "-o");
-        the(output).shouldContain("Dropped database jdbc:mysql://localhost/test_project");
+        the(output).shouldContain("Dropped database "+url());
         the(output).shouldContain("BUILD SUCCESS");
 
         output = execute(dir, "db-migrator:create", "-o");
-        the(output).shouldContain("Created database jdbc:mysql://localhost/test_project");
+        the(output).shouldContain("Created database "+url());
         the(output).shouldContain("BUILD SUCCESS");
 
         output = execute(dir, "db-migrator:validate", "-o");
@@ -86,6 +92,31 @@ public class MojoIntegrationSpec extends AbstractIntegrationSpec {
         String migrationFile = findMigrationFile(migrationsDir, "add_people");
         assertNotNull(migrationFile);
         assertTrue(new File(migrationsDir, migrationFile).delete());
+    }
+
+    static void overrideJdbcProperties(String dbPropsFile, String[] envs) throws IOException {
+        FileOutputStream out = null;
+        try {
+            Properties jdbcProperties = new Properties();
+            FileInputStream in = new FileInputStream(dbPropsFile);
+            jdbcProperties.load(in);
+            in.close();
+
+            for(String env : envs) {
+                jdbcProperties.setProperty(env+".driver", driver());
+                jdbcProperties.setProperty(env+".url", url()+"_"+env);
+                jdbcProperties.setProperty(env+".username", user());
+                jdbcProperties.setProperty(env+".password", password());
+            }
+
+            out = new FileOutputStream(dbPropsFile);
+            jdbcProperties.store(out, "Written by: MojoIntegrationEnvironmentsSpec");
+        }
+        finally {
+            if (out != null) {
+                out.close();
+            }
+        }
     }
 
     // will return null of not found
